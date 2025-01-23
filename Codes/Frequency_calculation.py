@@ -19,7 +19,7 @@ def extract_elements(line):
 # Path to your input files (use raw strings to avoid path escape issues)
 input_filename_1 = r"\mnt\Non-trivial.txt"
 input_filename_2 = r"\mnt\Trivial.txt"  # Second file to include
-output_filename_sorted = r"\mnt\Frequency_of_elements_in_non_trivial_and_trivial_trial.xlsx"  # Save as Excel
+output_filename_sorted = r"\mnt\Frequencies.xlsx"  # Save as Excel
 
 # Function to process a file and return a dictionary of element frequencies
 def process_file(input_filename):
