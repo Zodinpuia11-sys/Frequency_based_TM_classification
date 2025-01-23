@@ -6,8 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 import joblib
-import numpy as np
-from imblearn.over_sampling import SMOTE
+# import numpy as np
 from sklearn.model_selection import train_test_split, StratifiedKFold
 
 data = pd.read_excel(r"\mnt\For_training_models.xlsx")
