@@ -107,3 +107,16 @@ plt.ylabel("Number of Data Points")
 plt.title("Distribution of Predicted Probabilities")
 plt.legend()
 plt.show()
+
+# Get feature importance
+feature_importances = pd.Series(svm_model.feature_importances_, index=X.columns)
+
+# Plot feature importance
+plt.figure(figsize=(12, 6))
+feature_importances.sort_values(ascending=False).plot(kind="bar")
+plt.xticks(rotation=45, ha='right')
+plt.yticks(rotation=0)
+plt.title("Feature Importance for RF")
+plt.xlabel("Features")
+plt.ylabel("Importance Score")
+plt.show()
