@@ -28,12 +28,10 @@ joblib.dump(scaler, 'scaler_svm.joblib')
 # Train SVM model
 svm_model = SVC(kernel='linear',  probability=True, random_state=42)
 
-# K-Fold Cross Validation
-cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)  # 5-fold cross-validation
-cross_val_scores = cross_val_score(svm_model, X_train, y_train, cv=cv, scoring='roc_auc')
+cv_scores = cross_val_score(svm_model, X_train, y_train, cv=5, scoring='roc_auc')
+print("Cross-validation Scores:", cv_scores)
+print("Mean Cross-validation Score:", cv_scores.mean())
 
-print(f"Cross-validation AUC scores: {cross_val_scores}")
-print(f"Mean cross-validation AUC score: {cross_val_scores.mean()}")
 svm_model.fit(X_train, y_train)
 
 # Save the model
@@ -107,3 +105,22 @@ plt.ylabel("Number of Data Points")
 plt.title("Distribution of Predicted Probabilities")
 plt.legend()
 plt.show()
+
+# Model Parameters
+print("\n--- SVM Model Parameters ---")
+print("Weight vector (w):", svm_model.coef_)
+print("Bias term (b):", svm_model.intercept_)
+print("Number of support vectors for each class:", svm_model.n_support_)
+print("Total number of support vectors:", len(svm_model.support_))
+
+# Geometric Margin
+w_norm = np.linalg.norm(svm_model.coef_)
+geometric_margin = 1 / w_norm
+print(f"Geometric Margin: {geometric_margin:.4f}")
+
+# Margin Violations (slack variables > 0)
+decision_values = svm_model.decision_function(X_test)
+# Convert y_test to +/-1
+y_test_signed = y_test.replace({0: -1, 1: 1})
+margin_violations = np.sum(y_test_signed * decision_values < 1)
+print(f"Number of margin violations (slack variables > 0): {margin_violations}")
