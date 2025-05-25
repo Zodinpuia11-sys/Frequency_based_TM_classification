@@ -29,9 +29,10 @@ joblib.dump(scaler, 'scaler_rf.joblib')
 # Train Random Forest model
 rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
 
-# K-Fold Cross Validation
-cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)  # 5-fold cross-validation
-cross_val_scores = cross_val_score(rf_model, X_train, y_train, cv=cv, scoring='roc_auc')
+# Cross-validation
+cv_scores_rf = cross_val_score(rf_model, X, y, cv=5)
+print("Cross-validation Scores:", cv_scores_rf)
+print("Mean Cross-validation Score:", cv_scores_rf.mean())
 
 print(f"Cross-validation AUC scores: {cross_val_scores}")
 print(f"Mean cross-validation AUC score: {cross_val_scores.mean()}")
