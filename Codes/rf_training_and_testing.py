@@ -30,12 +30,36 @@ joblib.dump(scaler, 'scaler_rf.joblib')
 rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
 
 # Cross-validation
-cv_scores_rf = cross_val_score(rf_model, X, y, cv=5, scoring='roc_auc')
-print("Cross-validation Scores:", cv_scores_rf)
-print("Mean Cross-validation Score:", cv_scores_rf.mean())
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+cross_val_scores = cross_val_score(rf_model, X_train, y_train, cv=cv, scoring='roc_auc')
+print(f"Cross-validation: {cross_val_scores}")
+print(f"Mean cross-validation: {cross_val_scores.mean():.4f}")
+# Bar plot for cross-validation scores
+plt.figure(figsize=(8, 6))
+bars = plt.bar(range(1, 6), cross_val_scores, color='skyblue', edgecolor='black')
 
-print(f"Cross-validation AUC scores: {cross_val_scores}")
-print(f"Mean cross-validation AUC score: {cross_val_scores.mean()}")
+# Mean line
+mean_score = np.mean(cross_val_scores)
+plt.axhline(y=mean_score, color='red', linestyle='--', linewidth=2, label=f'Mean = {mean_score:.4f}')
+
+# Value labels on bars (truncate to 2 decimals, not round)
+for i, bar in enumerate(bars):
+    height = bar.get_height()
+    truncated = int(height * 100) / 100
+    plt.text(bar.get_x() + bar.get_width() / 2.0, height + 0.01,
+             f'{truncated:.3f}', ha='center', fontsize=11)
+
+# Formatting
+plt.title('Cross-Validation ROC AUC Scores per Fold (Random Forest)', fontsize=16)
+plt.xlabel('Fold Number', fontsize=14)
+plt.ylabel('ROC AUC Score', fontsize=14)
+plt.xticks(range(1, 6), fontsize=12)
+plt.yticks(fontsize=12)
+plt.ylim(0, 1.05)
+plt.legend(fontsize=12)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.show()
 
 # Fit the model on the resampled data
 rf_model.fit(X_train, y_train)
