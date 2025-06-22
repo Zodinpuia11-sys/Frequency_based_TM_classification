@@ -30,7 +30,7 @@ joblib.dump(scaler, 'scaler_rf.joblib')
 rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
 
 # Cross-validation
-cv_scores_rf = cross_val_score(rf_model, X, y, cv=5)
+cv_scores_rf = cross_val_score(rf_model, X, y, cv=5, scoring='roc_auc')
 print("Cross-validation Scores:", cv_scores_rf)
 print("Mean Cross-validation Score:", cv_scores_rf.mean())
 
