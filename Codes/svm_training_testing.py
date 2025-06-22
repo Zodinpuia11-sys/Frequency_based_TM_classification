@@ -28,9 +28,38 @@ joblib.dump(scaler, 'scaler_svm.joblib')
 # Train SVM model
 svm_model = SVC(kernel='linear',  probability=True, random_state=42)
 
+# K-Fold Cross Validation
 cv_scores = cross_val_score(svm_model, X_train, y_train, cv=5, scoring='roc_auc')
 print("Cross-validation Scores:", cv_scores)
 print("Mean Cross-validation Score:", cv_scores.mean())
+
+svm_model.fit(X_train, y_train)
+
+# Bar plot
+plt.figure(figsize=(8, 6))
+bars = plt.bar(range(1, len(cv_scores) + 1), cv_scores, color='skyblue', edgecolor='black')
+
+# Mean line
+mean_score = np.mean(cv_scores)
+plt.axhline(y=mean_score, color='red', linestyle='--', linewidth=2, label=f'Mean = {mean_score:.4f}')
+
+# Labels & titles
+plt.title('Cross-Validation ROC AUC Scores (SVM)', fontsize=18)
+plt.xlabel('Fold Number', fontsize=14)
+plt.ylabel('ROC AUC Score', fontsize=14)
+plt.xticks(range(1, len(cv_scores) + 1), [f'Fold {i}' for i in range(1, len(cv_scores)+1)], fontsize=12)
+plt.yticks(fontsize=12)
+plt.ylim(0, 1.05)
+plt.legend(fontsize=12)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+
+# Annotate scores on top of bars
+for bar in bars:
+    height = bar.get_height()
+    plt.text(bar.get_x() + bar.get_width()/2.0, height + 0.01, f'{height:.3f}', ha='center', fontsize=11)
+
+plt.tight_layout()
+plt.show()
 
 svm_model.fit(X_train, y_train)
 
