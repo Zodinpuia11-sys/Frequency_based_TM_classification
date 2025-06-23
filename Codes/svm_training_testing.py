@@ -33,6 +33,50 @@ cv_scores = cross_val_score(svm_model, X_train, y_train, cv=5, scoring='roc_auc'
 print("Cross-validation Scores:", cv_scores)
 print("Mean Cross-validation Score:", cv_scores.mean())
 
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+tprs = []
+aucs = []
+mean_fpr = np.linspace(0, 1, 100)
+
+plt.figure(figsize=(10, 10))
+
+for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
+    X_cv_train, X_cv_val = X_train[train_idx], X_train[val_idx]
+    y_cv_train, y_cv_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
+
+    svm_model_cv = SVC(kernel='linear', probability=True, random_state=42)
+    svm_model_cv.fit(X_cv_train, y_cv_train)
+    y_cv_prob = svm_model_cv.predict_proba(X_cv_val)[:, 1]
+
+    fpr, tpr, _ = roc_curve(y_cv_val, y_cv_prob)
+    roc_auc = auc(fpr, tpr)
+    aucs.append(roc_auc)
+    interp_tpr = np.interp(mean_fpr, fpr, tpr)
+    interp_tpr[0] = 0.0
+    tprs.append(interp_tpr)
+
+    plt.plot(fpr, tpr, lw=2, alpha=0.6, label=f'Fold {i+1} (AUC = {roc_auc:.3f})')
+
+# Plot mean ROC as black dotted line
+mean_tpr = np.mean(tprs, axis=0)
+mean_tpr[-1] = 1.0
+mean_auc = auc(mean_fpr, mean_tpr)
+
+plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='--', label=f'Mean ROC (AUC = {mean_auc:.3f})')
+plt.plot([0, 1], [0, 1], linestyle='--', color='gray', lw=2)
+
+plt.title('Cross-Validation ROC Curves (SVM)', fontsize=20)
+plt.xlabel('False Positive Rate', fontsize=16)
+plt.ylabel('True Positive Rate', fontsize=16)
+plt.legend(loc='lower right', fontsize=12)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+plt.grid(alpha=0.3)
+plt.show()
+
+print("Fold-wise AUC Scores:", aucs)
+print("Mean AUC Score:", np.mean(aucs))
+
 svm_model.fit(X_train, y_train)
 
 # Bar plot
