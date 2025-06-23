@@ -30,36 +30,54 @@ joblib.dump(scaler, 'scaler_rf.joblib')
 rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
 
 # Cross-validation
+cv_scores_rf = cross_val_score(rf_model, X, y, cv=5, scoring='roc_auc')
+print("Cross-validation Scores:", cv_scores_rf)
+print("Mean Cross-validation Score:", cv_scores_rf.mean())
+
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-cross_val_scores = cross_val_score(rf_model, X_train, y_train, cv=cv, scoring='roc_auc')
-print(f"Cross-validation: {cross_val_scores}")
-print(f"Mean cross-validation: {cross_val_scores.mean():.4f}")
-# Bar plot for cross-validation scores
-plt.figure(figsize=(8, 6))
-bars = plt.bar(range(1, 6), cross_val_scores, color='skyblue', edgecolor='black')
+tprs = []
+aucs = []
+mean_fpr = np.linspace(0, 1, 100)
 
-# Mean line
-mean_score = np.mean(cross_val_scores)
-plt.axhline(y=mean_score, color='red', linestyle='--', linewidth=2, label=f'Mean = {mean_score:.4f}')
+plt.figure(figsize=(10, 10))
 
-# Value labels on bars (truncate to 2 decimals, not round)
-for i, bar in enumerate(bars):
-    height = bar.get_height()
-    truncated = int(height * 100) / 100
-    plt.text(bar.get_x() + bar.get_width() / 2.0, height + 0.01,
-             f'{truncated:.3f}', ha='center', fontsize=11)
+for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
+    X_cv_train, X_cv_val = X_train[train_idx], X_train[val_idx]
+    y_cv_train, y_cv_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
 
-# Formatting
-plt.title('Cross-Validation ROC AUC Scores per Fold (Random Forest)', fontsize=16)
-plt.xlabel('Fold Number', fontsize=14)
-plt.ylabel('ROC AUC Score', fontsize=14)
-plt.xticks(range(1, 6), fontsize=12)
-plt.yticks(fontsize=12)
-plt.ylim(0, 1.05)
-plt.legend(fontsize=12)
-plt.grid(axis='y', linestyle='--', alpha=0.7)
-plt.tight_layout()
+    rf_cv_model = RandomForestClassifier(n_estimators=100, random_state=42)
+    rf_cv_model.fit(X_cv_train, y_cv_train)
+    y_cv_prob = rf_cv_model.predict_proba(X_cv_val)[:, 1]
+
+    fpr, tpr, _ = roc_curve(y_cv_val, y_cv_prob)
+    roc_auc = auc(fpr, tpr)
+    aucs.append(roc_auc)
+
+    interp_tpr = np.interp(mean_fpr, fpr, tpr)
+    interp_tpr[0] = 0.0
+    tprs.append(interp_tpr)
+
+    plt.plot(fpr, tpr, lw=2, alpha=0.6, label=f'Fold {i+1} (AUC = {roc_auc:.3f})')
+
+# Plot mean ROC curve as black dotted line
+mean_tpr = np.mean(tprs, axis=0)
+mean_tpr[-1] = 1.0
+mean_auc = auc(mean_fpr, mean_tpr)
+
+plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='--', label=f'Mean ROC (AUC = {mean_auc:.3f})')
+plt.plot([0, 1], [0, 1], linestyle='--', color='gray', lw=2)
+
+plt.title('Cross-Validation ROC Curves (Random Forest)', fontsize=20)
+plt.xlabel('False Positive Rate', fontsize=16)
+plt.ylabel('True Positive Rate', fontsize=16)
+plt.legend(loc='lower right', fontsize=12)
+plt.xticks(fontsize=14)
+plt.yticks(fontsize=14)
+plt.grid(alpha=0.3)
 plt.show()
+
+print("Fold-wise AUC Scores:", aucs)
+print("Mean AUC Score:", np.mean(aucs))
 
 # Fit the model on the resampled data
 rf_model.fit(X_train, y_train)
