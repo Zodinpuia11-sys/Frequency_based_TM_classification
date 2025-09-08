@@ -7,7 +7,7 @@ svm_model = joblib.load('svm_model.joblib')
 scaler = joblib.load('scaler_svm.joblib')
 
 # Load the unseen data to classify
-unseen_data_path = r"E:\B.Tech Project\Data_to_classify.xlsx"
+unseen_data_path = r"mnt\Data_to_classify.xlsx"
 unseen_data = pd.read_excel(unseen_data_path)
 
 # Separate the features and the electronegativity difference
