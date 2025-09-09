@@ -11,15 +11,13 @@ from sklearn.preprocessing import StandardScaler
 import joblib
 import numpy as np
 
-data = pd.read_excel(r"\mnt\For_training_models.xlsx")
+data = pd.read_excel(r"\For_training_models.xlsx")
 
 X = data[['Freq_non_trivial', 'Freq_trivial', 'Difference']]
 y = data['Label']
 
-# Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Standardize features
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
@@ -34,7 +32,6 @@ aucs = []
 mean_fpr = np.linspace(0, 1, 100)
 
 plt.figure(figsize=(10, 10))
-
 for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
     X_cv_train, X_cv_val = X_train[train_idx], X_train[val_idx]
     y_cv_train, y_cv_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
@@ -51,13 +48,12 @@ for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
     interp_tpr[0] = 0.0
     tprs.append(interp_tpr)
 
-    plt.plot(fpr, tpr, lw=2, alpha=0.6, label=f'Fold {i+1} (AUC = {roc_auc:.3f})')
+    plt.plot(fpr, tpr, lw=2, alpha=0.6, label=f'Fold {i+1} (AUC = {roc_auc:.2f})')
 
 mean_tpr = np.mean(tprs, axis=0)
 mean_tpr[-1] = 1.0
 mean_auc = auc(mean_fpr, mean_tpr)
-
-plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='--', label=f'Mean ROC (AUC = {mean_auc:.3f})')
+plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='--', label=f'Mean ROC (AUC = {mean_auc:.2f})')
 plt.plot([0, 1], [0, 1], linestyle='--', color='gray', lw=2)
 
 plt.title('Cross-Validation ROC Curves (Random Forest)', fontsize=20)
@@ -66,6 +62,37 @@ plt.ylabel('True Positive Rate', fontsize=16)
 plt.legend(loc='lower right', fontsize=12)
 plt.xticks(fontsize=14)
 plt.yticks(fontsize=14)
+plt.grid(alpha=0.3)
+plt.show()
+
+for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
+    X_cv_train, X_cv_val = X_train[train_idx], X_train[val_idx]
+    y_cv_train, y_cv_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
+
+    rf_cv_model = RandomForestClassifier(n_estimators=100, random_state=42)
+    rf_cv_model.fit(X_cv_train, y_cv_train)
+    y_cv_prob = rf_cv_model.predict_proba(X_cv_val)[:, 1]
+
+    fpr, tpr, _ = roc_curve(y_cv_val, y_cv_prob)
+    roc_auc = auc(fpr, tpr)
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, lw=2, alpha=0.8, label=f'Fold {i+1} (AUC = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], linestyle='--', color='gray', lw=2)
+    plt.title(f'ROC Curve - Fold {i+1}', fontsize=16)
+    plt.xlabel('False Positive Rate', fontsize=14)
+    plt.ylabel('True Positive Rate', fontsize=14)
+    plt.legend(loc='lower right')
+    plt.grid(alpha=0.3)
+    plt.show()
+
+plt.figure(figsize=(8, 6))
+plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='--', label=f'Mean ROC (AUC = {mean_auc:.2f})')
+plt.plot([0, 1], [0, 1], linestyle='--', color='gray', lw=2)
+plt.title('Mean Cross-Validation ROC Curve', fontsize=16)
+plt.xlabel('False Positive Rate', fontsize=14)
+plt.ylabel('True Positive Rate', fontsize=14)
+plt.legend(loc='lower right')
 plt.grid(alpha=0.3)
 plt.show()
 
