@@ -15,14 +15,12 @@ from sklearn.preprocessing import StandardScaler
 import joblib
 import numpy as np
 
-data = pd.read_excel(r"C:\Users\HP\OneDrive\Desktop\ML in TM\For_training_models.xlsx")
+data = pd.read_excel(r"\For_training_models.xlsx")
 
 X = data[['Freq_non_trivial', 'Freq_trivial', 'Difference']]
 y = data['Label']
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
@@ -43,7 +41,6 @@ aucs = []
 mean_fpr = np.linspace(0, 1, 100)
 
 plt.figure(figsize=(10, 10))
-
 for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
     X_cv_train, X_cv_val = X_train[train_idx], X_train[val_idx]
     y_cv_train, y_cv_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
@@ -60,22 +57,50 @@ for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
     interp_tpr[0] = 0.0
     tprs.append(interp_tpr)
 
-    plt.plot(fpr, tpr, lw=2, alpha=0.7, label=f'Fold {i+1} (AUC = {roc_auc:.3f})')
+    plt.plot(fpr, tpr, lw=2, alpha=0.7, label=f'Fold {i+1} (AUC = {roc_auc:.2f})')
 
 mean_tpr = np.mean(tprs, axis=0)
 mean_tpr[-1] = 1.0
 mean_auc = auc(mean_fpr, mean_tpr)
 plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='--',
-         label=f'Mean ROC (AUC = {mean_auc:.3f})')
-
+         label=f'Mean ROC (AUC = {mean_auc:.2f})')
 plt.plot([0, 1], [0, 1], linestyle='--', color='gray', lw=2)
-
 plt.title('Cross-Validation ROC Curves (SVM)', fontsize=20)
 plt.xlabel('False Positive Rate', fontsize=16)
 plt.ylabel('True Positive Rate', fontsize=16)
 plt.legend(loc='lower right', fontsize=12)
-plt.xticks(fontsize=14)
-plt.yticks(fontsize=14)
+plt.grid(alpha=0.3)
+plt.show()
+
+for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
+    X_cv_train, X_cv_val = X_train[train_idx], X_train[val_idx]
+    y_cv_train, y_cv_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
+
+    svm_model_cv = SVC(kernel='linear', probability=True, random_state=42)
+    svm_model_cv.fit(X_cv_train, y_cv_train)
+    y_cv_prob = svm_model_cv.predict_proba(X_cv_val)[:, 1]
+
+    fpr, tpr, _ = roc_curve(y_cv_val, y_cv_prob)
+    roc_auc = auc(fpr, tpr)
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, lw=2, alpha=0.8, label=f'Fold {i+1} (AUC = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], linestyle='--', color='gray', lw=2)
+    plt.title(f'ROC Curve - Fold {i+1}', fontsize=16)
+    plt.xlabel('False Positive Rate', fontsize=14)
+    plt.ylabel('True Positive Rate', fontsize=14)
+    plt.legend(loc='lower right')
+    plt.grid(alpha=0.3)
+    plt.show()
+
+plt.figure(figsize=(8, 8))
+plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='--',
+         label=f'Mean ROC Curve (AUC = {mean_auc:.3f})')
+plt.plot([0, 1], [0, 1], color='gray', lw=2, linestyle='--')
+plt.title('Mean Cross-Validation ROC Curve (SVM)', fontsize=18)
+plt.xlabel('False Positive Rate', fontsize=14)
+plt.ylabel('True Positive Rate', fontsize=14)
+plt.legend(loc='lower right', fontsize=12)
 plt.grid(alpha=0.3)
 plt.show()
 
@@ -84,11 +109,9 @@ print("Mean AUC Score:", np.mean(aucs))
 
 plt.figure(figsize=(8, 6))
 bars = plt.bar(range(1, len(cv_scores) + 1), cv_scores, color='skyblue', edgecolor='black')
-
 mean_score = np.mean(cv_scores)
 plt.axhline(y=mean_score, color='red', linestyle='--', linewidth=2,
             label=f'Mean = {mean_score:.4f}')
-
 plt.title('Cross-Validation ROC AUC Scores (SVM)', fontsize=18)
 plt.xlabel('Fold Number', fontsize=14)
 plt.ylabel('ROC AUC Score', fontsize=14)
@@ -98,17 +121,14 @@ plt.yticks(fontsize=12)
 plt.ylim(0, 1.05)
 plt.legend(fontsize=12)
 plt.grid(axis='y', linestyle='--', alpha=0.7)
-
 for bar in bars:
     height = bar.get_height()
     plt.text(bar.get_x() + bar.get_width()/2.0, height + 0.01,
              f'{height:.3f}', ha='center', fontsize=11)
-
 plt.tight_layout()
 plt.show()
 
 svm_model.fit(X_train, y_train)
-
 joblib.dump(svm_model, 'svm_model.joblib')
 
 y_pred_svm = svm_model.predict(X_test)
@@ -149,7 +169,7 @@ plt.plot(recall_svm, precision_svm, color='blue', lw=2,
          label='SVM Precision-Recall Curve')
 plt.xlabel('Recall')
 plt.ylabel('Precision')
-plt.title('Precision-Recall Curve (Test Set)')
+plt.title('Precision-Recall Curve (Test Set)', fontsize=14)
 plt.legend(loc="lower left")
 plt.show()
 
@@ -173,7 +193,6 @@ geometric_margin = 1 / w_norm
 print(f"Geometric Margin: {geometric_margin:.4f}")
 
 decision_values = svm_model.decision_function(X_test)
-
 y_test_signed = y_test.replace({0: -1, 1: 1})
 margin_violations = np.sum(y_test_signed * decision_values < 1)
 print(f"Number of margin violations (slack variables > 0): {margin_violations}")
