@@ -1,10 +1,10 @@
+import math
 import pandas as pd
 from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
 from sklearn.svm import SVC
 from sklearn.metrics import (
     classification_report,
     confusion_matrix,
-    roc_auc_score,
     roc_curve,
     auc,
     precision_recall_curve
@@ -20,25 +20,36 @@ data = pd.read_excel(r"\For_training_models.xlsx")
 X = data[['Freq_non_trivial', 'Freq_trivial', 'Difference']]
 y = data['Label']
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
-
 joblib.dump(scaler, 'scaler_svm.joblib')
 
 svm_model = SVC(kernel='linear', probability=True, random_state=42)
 
 cv_scores = cross_val_score(svm_model, X_train, y_train, cv=5, scoring='roc_auc')
-print("Cross-validation Scores:", cv_scores)
-print("Mean Cross-validation Score:", cv_scores.mean())
+
+cv_scores_floor = np.floor(cv_scores * 100) / 100
+mean_cv_score_floor = np.floor(cv_scores.mean() * 100) / 100
+
+print("Cross-validation Scores (floored):", cv_scores_floor)
+print("Mean Cross-validation Score (floored):", mean_cv_score_floor)
 
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-
-tprs = []
-aucs = []
+tprs, aucs = [], []
 mean_fpr = np.linspace(0, 1, 100)
+
+fold_styles = [
+    {'linestyle': 'none', 'marker': '.', 'markersize': 5, 'color': 'red'},       # Fold 1: dot
+    {'linestyle': '--', 'linewidth': 2.5, 'color': 'blue'},                      # Fold 2: dashed line
+    {'linestyle': 'none', 'marker': 'x', 'markersize': 5, 'color': 'green'},     # Fold 3: cross
+    {'linestyle': '-.', 'linewidth': 2.5, 'color': 'purple'},                    # Fold 4: dash-dot line
+    {'linestyle': 'none', 'marker': 'o', 'markersize': 5, 'color': 'orange'}     # Fold 5: circle
+]
 
 plt.figure(figsize=(10, 10))
 for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
@@ -57,75 +68,28 @@ for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
     interp_tpr[0] = 0.0
     tprs.append(interp_tpr)
 
-    plt.plot(fpr, tpr, lw=2, alpha=0.7, label=f'Fold {i+1} (AUC = {roc_auc:.2f})')
+    roc_auc_floor = np.floor(roc_auc * 100) / 100
+    plt.plot(fpr, tpr, label=f'Fold {i+1} (AUC = {roc_auc_floor:.2f})', **fold_styles[i])
 
 mean_tpr = np.mean(tprs, axis=0)
 mean_tpr[-1] = 1.0
 mean_auc = auc(mean_fpr, mean_tpr)
-plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='--',
-         label=f'Mean ROC (AUC = {mean_auc:.2f})')
+mean_auc_floor = np.floor(mean_auc * 100) / 100
+plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='-',
+         label=f'Mean ROC (AUC = {mean_auc_floor:.2f})')
+
 plt.plot([0, 1], [0, 1], linestyle='--', color='gray', lw=2)
-plt.title('Cross-Validation ROC Curves (SVM)', fontsize=20)
-plt.xlabel('False Positive Rate', fontsize=16)
-plt.ylabel('True Positive Rate', fontsize=16)
-plt.legend(loc='lower right', fontsize=12)
+plt.title('Cross-Validation ROC Curves (SVM)', fontsize=22)
+plt.xlabel('False Positive Rate', fontsize=20)
+plt.ylabel('True Positive Rate', fontsize=20)
+plt.xticks(fontsize=16)
+plt.yticks(fontsize=16)
+
+legend = plt.legend(loc='lower right', fontsize=14)
+for text in legend.get_texts():
+    text.set_fontweight('bold')
+
 plt.grid(alpha=0.3)
-plt.show()
-
-for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
-    X_cv_train, X_cv_val = X_train[train_idx], X_train[val_idx]
-    y_cv_train, y_cv_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
-
-    svm_model_cv = SVC(kernel='linear', probability=True, random_state=42)
-    svm_model_cv.fit(X_cv_train, y_cv_train)
-    y_cv_prob = svm_model_cv.predict_proba(X_cv_val)[:, 1]
-
-    fpr, tpr, _ = roc_curve(y_cv_val, y_cv_prob)
-    roc_auc = auc(fpr, tpr)
-
-    plt.figure(figsize=(8, 6))
-    plt.plot(fpr, tpr, lw=2, alpha=0.8, label=f'Fold {i+1} (AUC = {roc_auc:.2f})')
-    plt.plot([0, 1], [0, 1], linestyle='--', color='gray', lw=2)
-    plt.title(f'ROC Curve - Fold {i+1}', fontsize=16)
-    plt.xlabel('False Positive Rate', fontsize=14)
-    plt.ylabel('True Positive Rate', fontsize=14)
-    plt.legend(loc='lower right')
-    plt.grid(alpha=0.3)
-    plt.show()
-
-plt.figure(figsize=(8, 8))
-plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='--',
-         label=f'Mean ROC Curve (AUC = {mean_auc:.3f})')
-plt.plot([0, 1], [0, 1], color='gray', lw=2, linestyle='--')
-plt.title('Mean Cross-Validation ROC Curve (SVM)', fontsize=18)
-plt.xlabel('False Positive Rate', fontsize=14)
-plt.ylabel('True Positive Rate', fontsize=14)
-plt.legend(loc='lower right', fontsize=12)
-plt.grid(alpha=0.3)
-plt.show()
-
-print("Fold-wise AUC Scores:", aucs)
-print("Mean AUC Score:", np.mean(aucs))
-
-plt.figure(figsize=(8, 6))
-bars = plt.bar(range(1, len(cv_scores) + 1), cv_scores, color='skyblue', edgecolor='black')
-mean_score = np.mean(cv_scores)
-plt.axhline(y=mean_score, color='red', linestyle='--', linewidth=2,
-            label=f'Mean = {mean_score:.4f}')
-plt.title('Cross-Validation ROC AUC Scores (SVM)', fontsize=18)
-plt.xlabel('Fold Number', fontsize=14)
-plt.ylabel('ROC AUC Score', fontsize=14)
-plt.xticks(range(1, len(cv_scores) + 1),
-           [f'Fold {i}' for i in range(1, len(cv_scores)+1)], fontsize=12)
-plt.yticks(fontsize=12)
-plt.ylim(0, 1.05)
-plt.legend(fontsize=12)
-plt.grid(axis='y', linestyle='--', alpha=0.7)
-for bar in bars:
-    height = bar.get_height()
-    plt.text(bar.get_x() + bar.get_width()/2.0, height + 0.01,
-             f'{height:.3f}', ha='center', fontsize=11)
-plt.tight_layout()
 plt.show()
 
 svm_model.fit(X_train, y_train)
@@ -141,45 +105,58 @@ plt.figure(figsize=(10, 10))
 cm = confusion_matrix(y_test, y_pred_svm)
 ax = sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", linewidths=2, linecolor='black',
                  annot_kws={"size": 20})
-plt.title("Confusion Matrix - SVM", fontsize=30)
+plt.title("Confusion Matrix - SVM", fontsize=28)
 plt.xlabel("Predicted Labels", fontsize=20)
 plt.ylabel("True Labels", fontsize=20)
-plt.xticks(fontsize=20)
-plt.yticks(fontsize=20)
+plt.xticks(fontsize=18)
+plt.yticks(fontsize=18)
 cbar = ax.collections[0].colorbar
-cbar.ax.tick_params(labelsize=20)
+cbar.ax.tick_params(labelsize=16)
 plt.show()
 
 fpr_svm, tpr_svm, _ = roc_curve(y_test, y_prob_svm)
 roc_auc_svm = auc(fpr_svm, tpr_svm)
+roc_auc_svm_floor = np.floor(roc_auc_svm * 100) / 100
 
 plt.figure(figsize=(10, 10))
 plt.plot(fpr_svm, tpr_svm, color='blue', lw=3,
-         label=f'SVM ROC curve (area = {roc_auc_svm:.2f})')
+         label=f'SVM ROC curve (area = {roc_auc_svm_floor:.2f})')
 plt.plot([0, 1], [0, 1], color='gray', lw=2, linestyle='--')
 plt.xlabel('False Positive Rate', fontsize=20)
 plt.ylabel('True Positive Rate', fontsize=20)
-plt.title('Receiver Operating Characteristic - Test Set (SVM)', fontsize=30)
-plt.legend(loc="lower right", fontsize=20)
+plt.title('Receiver Operating Characteristic - Test Set (SVM)', fontsize=26)
+
+legend = plt.legend(loc="lower right", fontsize=16)
+for text in legend.get_texts():
+    text.set_fontweight('bold')
+
 plt.show()
 
 precision_svm, recall_svm, thresholds_svm = precision_recall_curve(y_test, y_prob_svm)
 plt.figure(figsize=(8, 6))
 plt.plot(recall_svm, precision_svm, color='blue', lw=2,
          label='SVM Precision-Recall Curve')
-plt.xlabel('Recall')
-plt.ylabel('Precision')
-plt.title('Precision-Recall Curve (Test Set)', fontsize=14)
-plt.legend(loc="lower left")
+plt.xlabel('Recall', fontsize=16)
+plt.ylabel('Precision', fontsize=16)
+plt.title('Precision-Recall Curve (Test Set)', fontsize=18)
+
+legend = plt.legend(loc="lower left", fontsize=14)
+for text in legend.get_texts():
+    text.set_fontweight('bold')
+
 plt.show()
 
 plt.figure(figsize=(8, 6))
 plt.hist(y_prob_svm[y_test == 0], color='blue', alpha=0.7, label='Class 0')
 plt.hist(y_prob_svm[y_test == 1], color='red', alpha=0.7, label='Class 1')
-plt.xlabel("Predicted Probability")
-plt.ylabel("Number of Data Points")
-plt.title("Distribution of Predicted Probabilities")
-plt.legend()
+plt.xlabel("Predicted Probability", fontsize=16)
+plt.ylabel("Number of Data Points", fontsize=16)
+plt.title("Distribution of Predicted Probabilities", fontsize=18)
+
+legend = plt.legend(fontsize=14)
+for text in legend.get_texts():
+    text.set_fontweight('bold')
+
 plt.show()
 
 print("\n--- SVM Model Parameters ---")
