@@ -16,20 +16,28 @@ data = pd.read_excel(r"\For_training_models.xlsx")
 X = data[['Freq_non_trivial', 'Freq_trivial', 'Difference']]
 y = data['Label']
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
-
 joblib.dump(scaler, 'scaler_rf.joblib')
 
 rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
 
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-tprs = []
-aucs = []
+tprs, aucs = [], []
 mean_fpr = np.linspace(0, 1, 100)
+
+fold_styles = [
+    {'linestyle': 'none', 'marker': '.', 'markersize': 5, 'color': 'red'},
+    {'linestyle': '--', 'linewidth': 2.5, 'color': 'blue'},
+    {'linestyle': 'none', 'marker': 'x', 'markersize': 5, 'color': 'green'},
+    {'linestyle': '-.', 'linewidth': 2.5, 'color': 'purple'},
+    {'linestyle': 'none', 'marker': 'o', 'markersize': 5, 'color': 'orange'}
+]
 
 plt.figure(figsize=(10, 10))
 for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
@@ -42,65 +50,40 @@ for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
 
     fpr, tpr, _ = roc_curve(y_cv_val, y_cv_prob)
     roc_auc = auc(fpr, tpr)
+
+    roc_auc_floor = np.floor(roc_auc * 100) / 100
     aucs.append(roc_auc)
 
     interp_tpr = np.interp(mean_fpr, fpr, tpr)
     interp_tpr[0] = 0.0
     tprs.append(interp_tpr)
 
-    plt.plot(fpr, tpr, lw=2, alpha=0.6, label=f'Fold {i+1} (AUC = {roc_auc:.2f})')
+    plt.plot(fpr, tpr, label=f'Fold {i+1} (AUC = {roc_auc_floor:.2f})', **fold_styles[i])
 
 mean_tpr = np.mean(tprs, axis=0)
 mean_tpr[-1] = 1.0
 mean_auc = auc(mean_fpr, mean_tpr)
-plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='--', label=f'Mean ROC (AUC = {mean_auc:.2f})')
+
+mean_auc_floor = np.floor(mean_auc * 100) / 100
+plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='-',
+         label=f'Mean ROC (AUC = {mean_auc_floor:.2f})')
+
 plt.plot([0, 1], [0, 1], linestyle='--', color='gray', lw=2)
 
-plt.title('Cross-Validation ROC Curves (Random Forest)', fontsize=20)
-plt.xlabel('False Positive Rate', fontsize=16)
-plt.ylabel('True Positive Rate', fontsize=16)
-plt.legend(loc='lower right', fontsize=12)
-plt.xticks(fontsize=14)
-plt.yticks(fontsize=14)
+plt.title('Cross-Validation ROC Curves (RF)', fontsize=22)
+plt.xlabel('False Positive Rate', fontsize=20)
+plt.ylabel('True Positive Rate', fontsize=20)
+plt.xticks(fontsize=16)
+plt.yticks(fontsize=16)
+
+legend = plt.legend(loc='lower right', fontsize=14)
+for text in legend.get_texts():
+    text.set_fontweight('bold')
+
 plt.grid(alpha=0.3)
 plt.show()
-
-for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
-    X_cv_train, X_cv_val = X_train[train_idx], X_train[val_idx]
-    y_cv_train, y_cv_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
-
-    rf_cv_model = RandomForestClassifier(n_estimators=100, random_state=42)
-    rf_cv_model.fit(X_cv_train, y_cv_train)
-    y_cv_prob = rf_cv_model.predict_proba(X_cv_val)[:, 1]
-
-    fpr, tpr, _ = roc_curve(y_cv_val, y_cv_prob)
-    roc_auc = auc(fpr, tpr)
-
-    plt.figure(figsize=(8, 6))
-    plt.plot(fpr, tpr, lw=2, alpha=0.8, label=f'Fold {i+1} (AUC = {roc_auc:.2f})')
-    plt.plot([0, 1], [0, 1], linestyle='--', color='gray', lw=2)
-    plt.title(f'ROC Curve - Fold {i+1}', fontsize=16)
-    plt.xlabel('False Positive Rate', fontsize=14)
-    plt.ylabel('True Positive Rate', fontsize=14)
-    plt.legend(loc='lower right')
-    plt.grid(alpha=0.3)
-    plt.show()
-
-plt.figure(figsize=(8, 6))
-plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='--', label=f'Mean ROC (AUC = {mean_auc:.2f})')
-plt.plot([0, 1], [0, 1], linestyle='--', color='gray', lw=2)
-plt.title('Mean Cross-Validation ROC Curve', fontsize=16)
-plt.xlabel('False Positive Rate', fontsize=14)
-plt.ylabel('True Positive Rate', fontsize=14)
-plt.legend(loc='lower right')
-plt.grid(alpha=0.3)
-plt.show()
-
-print("Fold-wise AUC Scores:", aucs)
-print("Mean AUC Score:", np.mean(aucs))
 
 rf_model.fit(X_train, y_train)
-
 joblib.dump(rf_model, 'rf_model.joblib')
 
 y_pred_rf = rf_model.predict(X_test)
@@ -131,7 +114,8 @@ plt.show()
 fpr_rf, tpr_rf, _ = roc_curve(y_test, y_prob_rf)
 roc_auc_rf = auc(fpr_rf, tpr_rf)
 plt.figure()
-plt.plot(fpr_rf, tpr_rf, color='blue', lw=2, label='Random Forest ROC curve (area = %0.2f)' % roc_auc_rf)
+plt.plot(fpr_rf, tpr_rf, color='blue', lw=2,
+         label='Random Forest ROC curve (area = %.2f)' % roc_auc_rf)
 plt.plot([0, 1], [0, 1], color='gray', lw=2, linestyle='--')
 plt.xlim([0.0, 1.0])
 plt.ylim([0.0, 1.05])
@@ -141,14 +125,13 @@ plt.title('Receiver Operating Characteristic - Random Forest (Test Set)')
 plt.legend(loc="lower right")
 plt.show()
 
-print("AUC Score (Test Set):", roc_auc_score(y_test, y_prob_rf))
-
-print("Model Score (Test Set):", rf_model.score(X_test, y_test))
+print("AUC Score (Test Set):", round(roc_auc_score(y_test, y_prob_rf), 2))
+print("Model Score (Test Set):", round(rf_model.score(X_test, y_test), 2))
 
 precision_rf, recall_rf, thresholds_rf = precision_recall_curve(y_test, y_prob_rf)
-
 plt.figure(figsize=(8, 6))
-plt.plot(recall_rf, precision_rf, color='blue', lw=2, label='Random Forest Precision-Recall Curve')
+plt.plot(recall_rf, precision_rf, color='blue', lw=2,
+         label='Random Forest Precision-Recall Curve')
 plt.xlabel('Recall')
 plt.ylabel('Precision')
 plt.title('Precision-Recall Curve (Test Set)')
