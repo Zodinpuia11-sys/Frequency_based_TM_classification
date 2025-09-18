@@ -32,7 +32,6 @@ joblib.dump(scaler, 'scaler_svm.joblib')
 svm_model = SVC(kernel='linear', probability=True, random_state=42)
 
 cv_scores = cross_val_score(svm_model, X_train, y_train, cv=5, scoring='roc_auc')
-
 cv_scores_floor = np.floor(cv_scores * 100) / 100
 mean_cv_score_floor = np.floor(cv_scores.mean() * 100) / 100
 
@@ -44,11 +43,11 @@ tprs, aucs = [], []
 mean_fpr = np.linspace(0, 1, 100)
 
 fold_styles = [
-    {'linestyle': 'none', 'marker': '.', 'markersize': 5, 'color': 'red'},       # Fold 1: dot
-    {'linestyle': '--', 'linewidth': 2.5, 'color': 'blue'},                      # Fold 2: dashed line
-    {'linestyle': 'none', 'marker': 'x', 'markersize': 5, 'color': 'green'},     # Fold 3: cross
-    {'linestyle': '-.', 'linewidth': 2.5, 'color': 'purple'},                    # Fold 4: dash-dot line
-    {'linestyle': 'none', 'marker': 'o', 'markersize': 5, 'color': 'orange'}     # Fold 5: circle
+    {'linestyle': 'none', 'marker': '.', 'markersize': 5, 'color': 'red'},
+    {'linestyle': '--', 'linewidth': 2.5, 'color': 'blue'}, 
+    {'linestyle': 'none', 'marker': 'x', 'markersize': 5, 'color': 'green'},
+    {'linestyle': '-.', 'linewidth': 2.5, 'color': 'purple'},
+    {'linestyle': 'none', 'marker': 'o', 'markersize': 5, 'color': 'orange'}
 ]
 
 plt.figure(figsize=(10, 10))
@@ -74,9 +73,8 @@ for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
 mean_tpr = np.mean(tprs, axis=0)
 mean_tpr[-1] = 1.0
 mean_auc = auc(mean_fpr, mean_tpr)
-mean_auc_floor = np.floor(mean_auc * 100) / 100
 plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='-',
-         label=f'Mean ROC (AUC = {mean_auc_floor:.2f})')
+         label=f'Mean ROC (AUC = {mean_auc:.2f})')
 
 plt.plot([0, 1], [0, 1], linestyle='--', color='gray', lw=2)
 plt.title('Cross-Validation ROC Curves (SVM)', fontsize=22)
@@ -116,11 +114,10 @@ plt.show()
 
 fpr_svm, tpr_svm, _ = roc_curve(y_test, y_prob_svm)
 roc_auc_svm = auc(fpr_svm, tpr_svm)
-roc_auc_svm_floor = np.floor(roc_auc_svm * 100) / 100
 
 plt.figure(figsize=(10, 10))
 plt.plot(fpr_svm, tpr_svm, color='blue', lw=3,
-         label=f'SVM ROC curve (area = {roc_auc_svm_floor:.2f})')
+         label=f'SVM ROC curve (area = {roc_auc_svm:.2f})')
 plt.plot([0, 1], [0, 1], color='gray', lw=2, linestyle='--')
 plt.xlabel('False Positive Rate', fontsize=20)
 plt.ylabel('True Positive Rate', fontsize=20)
