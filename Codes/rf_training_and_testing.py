@@ -32,11 +32,11 @@ tprs, aucs = [], []
 mean_fpr = np.linspace(0, 1, 100)
 
 fold_styles = [
-    {'linestyle': 'none', 'marker': '.', 'markersize': 5, 'color': 'red'},
+    {'linestyle': 'none', 'marker': '*', 'markersize': 6, 'color': 'red'},
     {'linestyle': '--', 'linewidth': 2.5, 'color': 'blue'},
-    {'linestyle': 'none', 'marker': 'x', 'markersize': 5, 'color': 'green'},
+    {'linestyle': 'none', 'marker': 'x', 'markersize': 6, 'color': 'green'},
     {'linestyle': '-.', 'linewidth': 2.5, 'color': 'purple'},
-    {'linestyle': 'none', 'marker': 'o', 'markersize': 5, 'color': 'orange'}
+    {'linestyle': 'none', 'marker': '.', 'markersize': 5, 'color': 'orange'}
 ]
 
 plt.figure(figsize=(10, 10))
