@@ -43,11 +43,11 @@ tprs, aucs = [], []
 mean_fpr = np.linspace(0, 1, 100)
 
 fold_styles = [
-    {'linestyle': 'none', 'marker': '.', 'markersize': 5, 'color': 'red'},
-    {'linestyle': '--', 'linewidth': 2.5, 'color': 'blue'}, 
-    {'linestyle': 'none', 'marker': 'x', 'markersize': 5, 'color': 'green'},
+    {'linestyle': 'none', 'marker': '*', 'markersize': 6, 'color': 'red'},
+    {'linestyle': '--', 'linewidth': 2.5, 'color': 'blue'},
+    {'linestyle': 'none', 'marker': 'x', 'markersize': 6, 'color': 'green'},
     {'linestyle': '-.', 'linewidth': 2.5, 'color': 'purple'},
-    {'linestyle': 'none', 'marker': 'o', 'markersize': 5, 'color': 'orange'}
+    {'linestyle': 'none', 'marker': '.', 'markersize': 5, 'color': 'orange'}
 ]
 
 plt.figure(figsize=(10, 10))
@@ -73,8 +73,9 @@ for i, (train_idx, val_idx) in enumerate(cv.split(X_train, y_train)):
 mean_tpr = np.mean(tprs, axis=0)
 mean_tpr[-1] = 1.0
 mean_auc = auc(mean_fpr, mean_tpr)
+mean_auc_floor = np.floor(mean_auc * 100) / 100
 plt.plot(mean_fpr, mean_tpr, color='black', lw=3, linestyle='-',
-         label=f'Mean ROC (AUC = {mean_auc:.2f})')
+         label=f'Mean ROC (AUC = {mean_auc_floor:.2f})')
 
 plt.plot([0, 1], [0, 1], linestyle='--', color='gray', lw=2)
 plt.title('Cross-Validation ROC Curves (SVM)', fontsize=22)
